@@ -9,12 +9,12 @@ plt.rcParams.update({
 })
 
 # Define grid
-N = 10
-r = np.linspace(0.1, 10., N)
-phi = np.linspace(0., 2. * np.pi, 2 * N, endpoint=False)
-dr = r[1] - r[0]
-dphi = phi[1] - phi[0]
-r, phi = np.meshgrid(r, phi, indexing='ij')
+N = 100
+r_values = np.linspace(0.1, 10., N)
+phi_values = np.linspace(0., 2. * np.pi, 2 * N, endpoint=False)
+dr = r_values[1] - r_values[0]
+dphi = phi_values[1] - phi_values[0]
+r, phi = np.meshgrid(r_values, phi_values, indexing='ij')
 sigma = np.log(r)
 
 # Ploting grid
@@ -32,7 +32,7 @@ conformal_e_phi = np.array([ -np.sin(phi), np.cos(phi) ])
 dt = 1e-2
 max_iterations = 1e3
 
-# Plot physical dyad vectors
+# Create plots
 def plot_physical_dyad_vectors(iteration=0, show=False, commutator_norm=None):
   physical_e_r = conformal_e_sigma
   physical_e_phi = Omega * conformal_e_phi
@@ -46,18 +46,43 @@ def plot_physical_dyad_vectors(iteration=0, show=False, commutator_norm=None):
   axes[1].set_title(r'$\vec e^P_\phi$')
 
   for ax in axes:
-    ax.set_xlabel(r'$r$')
+    ax.set_xlabel(r'$x$')
+    ax.set_ylabel(r'$y$')
     ax.set_aspect('equal')
     ax.grid('on', linestyle='--', alpha=0.5)
-  axes[0].set_ylabel(r'$\phi$')
-  axes[1].set_yticklabels([])
 
   if commutator_norm is not None:
     plt.suptitle(f'relaxation time = {iteration*dt:.1f}, physical commutator norm = {commutator_norm:.2e}')
 
   fig.set_size_inches(15, 8)
 
-  fig.savefig(f'iterations/{iteration:04}.png', format='png', dpi=100)
+  fig.savefig(f'iterations/physical_dyad_vectors-{iteration:04}.png', format='png', dpi=100)
+
+  if show:
+    plt.show()
+  
+  plt.close()
+def plot_physical_commutator(commutator, iteration=0, show=False, commutator_norm=None):
+  fig, axes = plt.subplots(1, 2, squeeze=True)
+
+  im = axes[0].imshow(commutator[0], extent=[phi_values[0], phi_values[-1], r_values[0], r_values[-1]], cmap='viridis')
+  axes[1].imshow(commutator[1], extent=[phi_values[0], phi_values[-1], r_values[0], r_values[-1]], cmap='viridis')
+
+  axes[0].set_title(r'$[d\vec e^P_{r\phi}]^x$')
+  axes[1].set_title(r'$[d\vec e^P_{r\phi}]^y$')
+
+  fig.colorbar(im, ax=axes, orientation='vertical')
+
+  for ax in axes:
+    ax.set_xlabel(r'$\phi$')
+    ax.set_ylabel(r'$r$')
+
+  if commutator_norm is not None:
+    plt.suptitle(f'relaxation time = {iteration*dt:.1f}, physical commutator norm = {commutator_norm:.2e}')
+
+  fig.set_size_inches(15, 8)
+
+  fig.savefig(f'iterations/physical_commutator-{iteration:04}.png', format='png', dpi=100)
 
   if show:
     plt.show()
@@ -85,9 +110,11 @@ def dot_e_phi():
 # Evolution
 for i in range(int(max_iterations)):
   if i % 10 == 0:
-    commutator_norm = np.linalg.norm(physical_commutator())
+    commutator = physical_commutator()
+    commutator_norm = np.linalg.norm(commutator)
     print(f'{i}: physical commutator norm = {commutator_norm:.2e}')
     plot_physical_dyad_vectors(iteration=i, commutator_norm=commutator_norm)
+    plot_physical_commutator(commutator, iteration=i, commutator_norm=commutator_norm)
 
   conformal_e_sigma += dt * dot_e_sigma()
   conformal_e_phi += dt * dot_e_phi()
